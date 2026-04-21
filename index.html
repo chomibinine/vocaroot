@@ -3,22 +3,19 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>VocaRoots Pro - Mobile Master</title>
+    <title>VocaRoots Pro - Ultimate Master</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&display=swap" rel="stylesheet">
-    <!-- 아이콘 라이브러리: Lucide -->
     <script src="https://unpkg.com/lucide@latest"></script>
     <style>
         body { font-family: 'Noto Sans KR', sans-serif; -webkit-tap-highlight-color: transparent; overscroll-behavior-y: contain; background-color: #f8fafc; }
         .custom-scroll::-webkit-scrollbar { width: 4px; }
         .custom-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
         
-        /* 카드 래퍼 및 스와이프 효과 (전체 카드 뭉치가 이동) */
-        #cardWrapper { position: relative; width: 100%; transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s; }
-        
-        /* 플래시카드 디자인 (제자리 회전) */
+        /* 카드 래퍼 및 스와이프 애니메이션 */
+        #cardWrapper { position: relative; width: 100%; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
         .flip-card { perspective: 1000px; width: 100%; height: 560px; }
-        .flip-card-inner { position: relative; width: 100%; height: 100%; transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1); transform-style: preserve-3d; }
+        .flip-card-inner { position: relative; width: 100%; height: 100%; transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1); transform-style: preserve-3d; }
         .flip-card.flipped .flip-card-inner { transform: rotateY(180deg); }
         
         .flip-card-front, .flip-card-back { 
@@ -32,7 +29,7 @@
         .flip-card-front { align-items: center; justify-content: center; padding: 2rem; }
         .flip-card-back { transform: rotateY(180deg); align-items: stretch; justify-content: flex-start; padding: 1.5rem; overflow-y: auto; }
 
-        /* 스와이프 이동 애니메이션 클래스 */
+        /* 스와이프 전환 애니메이션 */
         .slide-out-left { transform: translateX(-130%) rotate(-10deg) !important; opacity: 0; }
         .slide-out-right { transform: translateX(130%) rotate(10deg) !important; opacity: 0; }
         .slide-in { animation: slideIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.1) forwards; }
@@ -42,8 +39,11 @@
         #dictPanel.open { transform: translateX(0); }
         .btn-active:active { transform: scale(0.92); }
         
-        /* 어원 분석 박스 강화 */
-        .etym-item { border-left: 4px solid #6366f1; background-color: #f5f3ff; }
+        /* 어원 분석 텍스트 가독성 강화 */
+        .etym-item { border-left: 5px solid #4f46e5; background-color: #f5f3ff; margin-bottom: 10px; }
+        .etym-label { font-size: 10px; font-weight: 900; color: #94a3b8; text-transform: uppercase; }
+        .etym-text { font-size: 18px; font-weight: 900; color: #4338ca; }
+        .etym-meaning { font-size: 16px; font-weight: 700; color: #1e293b; }
     </style>
 </head>
 <body class="text-slate-800 h-screen flex flex-col overflow-hidden select-none" onclick="app.unlockAudio()">
@@ -53,14 +53,15 @@
         <div class="max-w-4xl mx-auto flex justify-between items-center">
             <div class="flex items-center gap-2">
                 <div class="bg-indigo-600 p-2 rounded-xl shadow-md"><i data-lucide="graduation-cap" class="text-white w-5 h-5"></i></div>
-                <h1 class="text-lg font-black text-slate-900 tracking-tight leading-none">Voca<span class="text-indigo-600">Roots</span></h1>
+                <h1 class="text-lg font-black text-slate-900 tracking-tight">Voca<span class="text-indigo-600">Roots</span></h1>
             </div>
             <div class="flex items-center gap-2">
+                <!-- 자동 로드 상태 표시 -->
                 <div id="loadStatus" class="flex items-center gap-1.5 bg-slate-50 px-3 py-1.5 rounded-full border border-slate-200">
                     <div class="w-2.5 h-2.5 bg-slate-300 rounded-full" id="statusDot"></div>
-                    <span id="statusText" class="text-[10px] font-black text-slate-400 uppercase tracking-tighter">Searching...</span>
+                    <span id="statusText" class="text-[10px] font-black text-slate-400 uppercase">Checking...</span>
                 </div>
-                <button onclick="app.toggleDict()" class="p-2.5 rounded-xl bg-slate-50 text-slate-400 active:text-indigo-600 btn-active"><i data-lucide="search" class="w-5 h-5"></i></button>
+                <button onclick="app.toggleDict()" class="p-2 rounded-xl bg-slate-50 text-slate-400 active:text-indigo-600 btn-active"><i data-lucide="search" class="w-5 h-5"></i></button>
             </div>
         </div>
     </header>
@@ -70,15 +71,16 @@
         <div class="max-w-4xl mx-auto">
             <div class="mb-6 flex items-center justify-between bg-white p-5 rounded-[2rem] border border-slate-200 shadow-sm">
                 <div>
-                    <h2 id="totalProgressText" class="text-2xl font-black text-slate-900 leading-none">0% Complete</h2>
-                    <span id="wordCountLabel" class="text-[11px] font-bold text-indigo-500 uppercase tracking-widest mt-1.5 block">Preparing Data...</span>
+                    <h2 id="totalProgressText" class="text-2xl font-black text-slate-900 leading-none">0% Done</h2>
+                    <span id="wordCountLabel" class="text-[11px] font-bold text-indigo-500 uppercase tracking-widest mt-1.5 block">Searching for data...</span>
                 </div>
-                <div class="w-12 h-12 bg-indigo-50 rounded-full flex items-center justify-center relative overflow-hidden">
+                <div class="w-12 h-12 bg-slate-50 rounded-full flex items-center justify-center relative overflow-hidden">
                     <div id="progressFill" class="absolute bottom-0 left-0 w-full bg-indigo-500 origin-bottom transition-transform duration-700" style="height: 100%; transform: scaleY(0);"></div>
                     <i data-lucide="award" class="w-6 h-6 text-indigo-200 relative z-10"></i>
                 </div>
             </div>
 
+            <!-- Settings -->
             <div class="grid grid-cols-2 gap-3 mb-6">
                 <div class="bg-white p-3 rounded-2xl border border-slate-200 shadow-sm">
                     <p class="text-[9px] font-black text-slate-300 uppercase mb-1 text-center">Course</p>
@@ -89,7 +91,7 @@
                     </select>
                 </div>
                 <div class="bg-white p-3 rounded-2xl border border-slate-200 shadow-sm">
-                    <p class="text-[9px] font-black text-slate-300 uppercase mb-1 text-center">Amount</p>
+                    <p class="text-[9px] font-black text-slate-300 uppercase mb-1 text-center">Daily Goal</p>
                     <select id="dailyAmount" onchange="app.renderGrid()" class="w-full bg-transparent font-black text-sm outline-none text-center">
                         <option value="10">10개씩</option>
                         <option value="20" selected>20개씩</option>
@@ -99,22 +101,23 @@
             </div>
 
             <div id="daysGrid" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4"></div>
-            <div id="emptyMsg" class="py-24 text-center text-slate-300 font-bold"><i data-lucide="inbox" class="w-12 h-12 mx-auto mb-3 opacity-20"></i>DATA 버튼으로 파일을 로드하세요.</div>
             
-            <!-- 수동 로드 폴백 버튼 -->
-            <div id="manualLoadUI" class="hidden py-10 text-center">
-                <button onclick="document.getElementById('fileLoaderManual').click()" class="bg-slate-900 text-white px-8 py-4 rounded-2xl font-black shadow-lg btn-active">수동 데이터 로드</button>
-                <input type="file" id="fileLoaderManual" multiple accept=".json" class="hidden" onchange="app.importData(event)">
+            <div id="loaderUI" class="py-20 text-center flex flex-col items-center">
+                <p class="text-slate-400 font-bold text-sm">데이터를 불러오는 중입니다...</p>
+                <button onclick="location.reload()" class="mt-4 text-indigo-600 font-black text-xs underline">새로고침</button>
             </div>
+            
+            <!-- 수동 로드 대비 (비상용) -->
+            <input type="file" id="fileLoader" multiple accept=".json" class="hidden" onchange="app.importData(event)">
         </div>
     </main>
 
-    <!-- Session Layer -->
+    <!-- Session Layer (Study & Quiz) -->
     <div id="sessionLayer" class="fixed inset-0 z-[100] bg-white hidden flex flex-col overflow-hidden">
         <div class="bg-white border-b border-slate-100 px-5 py-4 flex justify-between items-center shrink-0">
-            <button onclick="app.confirmExit()" class="text-slate-400 p-2 btn-active"><i data-lucide="x" class="w-7 h-7"></i></button>
+            <button onclick="app.confirmExit()" class="text-slate-400 p-2 btn-active"><i data-lucide="home" class="w-7 h-7"></i></button>
             <div class="text-center">
-                <span id="sessionDayLabel" class="text-[10px] font-black text-indigo-400 uppercase tracking-widest">DAY 01</span>
+                <span id="sessionDayLabel" class="text-[10px] font-black text-indigo-400 uppercase tracking-widest leading-none">DAY 01</span>
                 <div class="flex bg-slate-100 p-1 rounded-lg mt-0.5">
                     <button id="mode-study" onclick="app.switchMode('study')" class="px-4 py-1 text-[10px] font-black rounded-md bg-white shadow-sm text-indigo-600">STUDY</button>
                     <button id="mode-quiz" onclick="app.switchMode('quiz')" class="px-4 py-1 text-[10px] font-black rounded-md text-slate-400">QUIZ</button>
@@ -125,12 +128,12 @@
 
         <div id="sessionContent" class="flex-1 bg-slate-50 flex flex-col p-4 relative overflow-hidden" ontouchstart="app.ts(event)" ontouchend="app.te(event)">
             
-            <!-- STEP 1: Study UI -->
+            <!-- STEP 1: Study Phase -->
             <div id="studyUI" class="flex-1 flex flex-col items-center justify-center w-full max-w-md mx-auto">
                 <div id="cardWrapper" class="w-full slide-in">
                     <div class="flip-card cursor-pointer" id="flashcard" onclick="this.classList.toggle('flipped')">
                         <div class="flip-card-inner">
-                            <!-- 앞면: 단어와 발음 -->
+                            <!-- 앞면 -->
                             <div class="flip-card-front">
                                 <span class="text-indigo-300 text-[11px] font-black uppercase tracking-[0.4em] mb-6">Tap to Flip</span>
                                 <h2 id="lWord" class="text-6xl font-black text-slate-900 tracking-tighter mb-2"></h2>
@@ -138,36 +141,38 @@
                                 
                                 <!-- 발음 버튼 고정 -->
                                 <button onclick="event.stopPropagation(); app.speak(document.getElementById('lWord').textContent)" 
-                                        class="p-8 bg-indigo-600 text-white rounded-full active:scale-90 shadow-2xl shadow-indigo-100 flex items-center justify-center btn-active">
+                                        class="p-8 bg-indigo-600 text-white rounded-full active:scale-90 shadow-2xl shadow-indigo-200 btn-active flex items-center justify-center">
                                     <i data-lucide="volume-2" class="w-12 h-12"></i>
                                 </button>
                                 
                                 <p class="absolute bottom-10 text-[10px] font-black text-slate-200 uppercase tracking-widest flex items-center gap-2">
-                                    <i data-lucide="move-horizontal" class="w-4 h-4"></i> Swipe to Navigate
+                                    <i data-lucide="move-horizontal" class="w-4 h-4"></i> Swipe to Move
                                 </p>
                             </div>
                             
-                            <!-- 뒷면: 상세 정보 (어원 글자 크기 대폭 확대) -->
-                            <div class="flip-card-back custom-scroll space-y-6">
-                                <div class="text-center">
-                                    <div class="text-[11px] font-black text-slate-300 uppercase tracking-widest mb-1">뜻 (Meaning)</div>
-                                    <span class="bg-indigo-600 text-white px-8 py-3 rounded-2xl text-3xl font-black inline-block shadow-lg" id="lMeaning"></span>
+                            <!-- 뒷면 (레이아웃 교정 및 어원 확대) -->
+                            <div class="flip-card-back custom-scroll">
+                                <div class="text-center mb-6">
+                                    <p class="text-[10px] font-black text-slate-300 uppercase mb-1">뜻 (Meaning)</p>
+                                    <span class="bg-indigo-600 text-white px-8 py-3 rounded-2xl text-2xl font-black inline-block shadow-lg" id="lMeaning"></span>
                                 </div>
                                 
-                                <div class="space-y-3">
-                                    <p class="text-[11px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1.5"><i data-lucide="layers" class="w-4 h-4"></i> 어원 분석 (Etymology)</p>
-                                    <div id="lEtym" class="flex flex-col gap-2.5"></div>
+                                <div class="mb-6">
+                                    <p class="text-[11px] font-black text-slate-400 uppercase mb-2 flex items-center gap-1.5"><i data-lucide="layers" class="w-4 h-4"></i> 어원 분석 (Etymology)</p>
+                                    <div id="lEtym" class="space-y-2"></div>
                                 </div>
 
-                                <div class="bg-amber-50 p-5 rounded-3xl border border-amber-100 shadow-sm">
-                                    <p class="text-amber-800 font-black text-[11px] uppercase mb-2 flex items-center gap-1.5"><i data-lucide="sparkles" class="w-4 h-4"></i> 연상 스토리</p>
-                                    <p id="lStory" class="text-amber-900 text-[16px] font-bold leading-relaxed"></p>
+                                <div class="mb-6">
+                                    <div class="bg-amber-50 p-5 rounded-3xl border border-amber-100 shadow-sm">
+                                        <p class="text-amber-800 font-black text-[11px] uppercase mb-1.5 flex items-center gap-1.5"><i data-lucide="sparkles" class="w-4 h-4"></i> 연상 스토리</p>
+                                        <p id="lStory" class="text-amber-900 text-[16px] font-bold leading-relaxed"></p>
+                                    </div>
                                 </div>
 
-                                <div class="bg-slate-50 p-5 rounded-3xl border border-slate-100 relative">
+                                <div class="bg-slate-50 p-5 rounded-3xl border border-slate-100 relative shadow-sm">
                                     <div class="flex justify-between items-center mb-2">
                                         <p class="text-slate-400 font-black text-[11px] uppercase">실전 예문</p>
-                                        <button onclick="event.stopPropagation(); app.speak(document.getElementById('lExEn').textContent)" class="p-2 bg-white rounded-xl text-indigo-500 shadow-sm"><i data-lucide="volume-1" class="w-6 h-6"></i></button>
+                                        <button onclick="event.stopPropagation(); app.speak(document.getElementById('lExEn').textContent)" class="p-2 bg-white rounded-xl text-indigo-500 shadow-sm active:scale-125 transition-transform"><i data-lucide="volume-1" class="w-6 h-6"></i></button>
                                     </div>
                                     <p id="lExEn" class="text-slate-800 font-black italic text-[17px] mb-2 leading-snug"></p>
                                     <p id="lExKo" class="text-slate-500 text-[14px] font-bold"></p>
@@ -176,14 +181,14 @@
                         </div>
                     </div>
                 </div>
-                <!-- 하단 내비 -->
+                <!-- 하단 컨트롤 -->
                 <div class="mt-8 flex gap-4 w-full">
-                    <button onclick="app.moveLeft()" class="h-16 w-16 bg-white border border-slate-200 rounded-3xl flex items-center justify-center text-slate-400 btn-active shadow-sm"><i data-lucide="chevron-left" class="w-10 h-10"></i></button>
-                    <button id="nextBtn" onclick="app.moveRight()" class="flex-1 h-16 bg-slate-900 text-white rounded-3xl font-black shadow-xl active:bg-black transition-all">NEXT</button>
+                    <button onclick="app.moveLeft()" class="h-16 w-16 bg-white border border-slate-200 rounded-3xl flex items-center justify-center text-slate-400 active:bg-slate-50 shadow-sm btn-active"><i data-lucide="chevron-left" class="w-10 h-10"></i></button>
+                    <button id="nextBtn" onclick="app.moveRight()" class="flex-1 h-16 bg-slate-900 text-white rounded-3xl font-black shadow-xl active:bg-black transition-all">NEXT WORD</button>
                 </div>
             </div>
 
-            <!-- STEP 2: Quiz UI -->
+            <!-- STEP 2: Quiz Phase -->
             <div id="quizUI" class="hidden flex-1 flex flex-col items-center justify-center w-full max-w-md mx-auto">
                 <div class="w-full bg-white rounded-[2.5rem] shadow-xl p-10 mb-8 border border-slate-200 relative overflow-hidden text-center">
                     <div class="absolute top-0 left-0 w-full h-1 bg-slate-50"><div id="qBar" class="h-full bg-indigo-600 transition-all duration-300"></div></div>
@@ -196,22 +201,22 @@
                 <div id="qOptions" class="w-full grid grid-cols-1 gap-3"></div>
             </div>
 
-            <!-- STEP 3: Result UI -->
+            <!-- STEP 3: Result Phase -->
             <div id="resultUI" class="hidden flex-1 flex flex-col items-center justify-center text-center p-6 bg-white rounded-[3rem] shadow-sm">
                 <div class="w-24 h-24 bg-yellow-100 rounded-full flex items-center justify-center mb-6 shadow-inner"><i data-lucide="award" class="text-yellow-500 w-12 h-12"></i></div>
                 <h2 class="text-4xl font-black text-slate-900 mb-1">Cleared!</h2>
-                <p class="text-slate-500 font-bold mb-10 text-lg">점수: <span id="fScore" class="text-indigo-600 text-4xl">0</span></p>
+                <p class="text-slate-500 font-bold mb-10">점수: <span id="fScore" class="text-indigo-600 text-4xl">0</span></p>
                 <div id="wrongReview" class="w-full max-w-xs bg-rose-50 rounded-2xl p-6 border border-rose-100 mb-8 hidden overflow-y-auto max-h-48 text-left">
                     <p class="text-rose-700 font-black text-[11px] mb-3 uppercase flex items-center gap-1"><i data-lucide="alert-circle" class="w-4 h-4"></i> Wrong Word Review</p>
                     <ul id="wrongList" class="space-y-2"></ul>
                 </div>
-                <button onclick="app.exitNow()" class="w-full max-w-xs h-16 bg-slate-900 text-white rounded-3xl font-black shadow-xl uppercase">Back to Home</button>
+                <button onclick="app.exitNow()" class="w-full max-w-xs h-16 bg-slate-900 text-white rounded-3xl font-black shadow-xl uppercase btn-active">Complete</button>
             </div>
         </div>
     </div>
 
-    <!-- 사전 패널 -->
-    <aside id="dictPanel" class="fixed top-0 right-0 h-full w-full max-w-xs bg-white shadow-2xl z-[60] flex flex-col">
+    <!-- Side Dictionary Panel -->
+    <aside id="dictPanel" class="fixed top-0 right-0 h-full w-full max-w-xs bg-white shadow-2xl z-[60] flex flex-col border-l border-slate-200">
         <div class="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
             <h3 class="font-black text-indigo-600 flex items-center gap-2"><i data-lucide="search" class="w-5 h-5"></i> Dictionary</h3>
             <button onclick="app.toggleDict()" class="p-2"><i data-lucide="x"></i></button>
@@ -228,7 +233,7 @@
 
             async init() {
                 this.loadHistory();
-                await this.autoFetchData();
+                await this.autoFetchData(); // 자동 데이터 로딩
                 this.renderGrid();
                 this.ri();
                 if('speechSynthesis' in window) {
@@ -237,16 +242,18 @@
                 }
             },
 
+            // 🤖 경로 자동 탐색 (GitHub 최상위 폴더 우선 확인)
             async autoFetchData() {
                 const dot = document.getElementById('statusDot');
                 const text = document.getElementById('statusText');
+                const loaderUI = document.getElementById('loaderUI');
                 this.db = [];
                 let success = false;
 
-                // 서버상의 vocaroot 폴더 데이터 로드 시도
+                // 1~20 파트까지 서버에서 직접 시도
                 for(let i=1; i<=20; i++) {
                     try {
-                        const res = await fetch(`./vocaroot/data_part${i}.json`);
+                        const res = await fetch(`./data_part${i}.json`);
                         if(res.ok) {
                             const json = await res.json();
                             this.db.push(...(Array.isArray(json) ? json : (json.words || [])));
@@ -261,8 +268,10 @@
                     text.textContent = "Data Linked";
                     text.className = "text-[10px] font-black text-emerald-600 uppercase";
                     document.getElementById('wordCountLabel').textContent = `${this.db.length.toLocaleString()} Words Active`;
+                    loaderUI.classList.add('hidden');
                 } else {
-                    document.getElementById('manualLoadUI').classList.remove('hidden');
+                    text.textContent = "No Data Found";
+                    loaderUI.innerHTML = `<p class='text-slate-400 font-bold mb-4'>GitHub 파일 경로를 확인하세요.</p><button onclick="document.getElementById('fileLoader').click()" class="bg-indigo-600 text-white px-8 py-4 rounded-2xl font-black shadow-lg btn-active">수동 데이터 로드</button>`;
                 }
             },
 
@@ -280,8 +289,7 @@
                     } catch(err) {}
                 }
                 this.db = this.db.filter((v,i,a)=>a.findIndex(t=>t.word===v.word)===i);
-                localStorage.setItem('v_manual_db', JSON.stringify(this.db));
-                location.reload();
+                this.renderGrid();
             },
 
             resetHistory() { if(confirm("초기화하시겠습니까?")) { localStorage.clear(); location.reload(); } },
@@ -322,7 +330,7 @@
                 ut.lang = 'en-US'; ut.rate = 0.85; window.speechSynthesis.speak(ut);
             },
 
-            // 📖 스와이프 제어
+            // 📖 제스처 & 스와이프
             ts(e) { this.tx = e.changedTouches[0].screenX; this.ty = e.changedTouches[0].screenY; },
             te(e) {
                 const dx = e.changedTouches[0].screenX - this.tx;
@@ -330,20 +338,8 @@
                 if(Math.abs(dx) < 60 || Math.abs(dy) > 100 || this.mode !== 'study') return;
                 if(dx > 0) this.moveLeft(); else this.moveRight();
             },
-            moveLeft() {
-                if(this.sessionIdx > 0) {
-                    const wrap = document.getElementById('cardWrapper');
-                    wrap.classList.add('slide-out-right');
-                    setTimeout(() => { this.sessionIdx--; this.renderStudy(); wrap.className = 'w-full slide-in'; }, 250);
-                }
-            },
-            moveRight() {
-                if(this.sessionIdx < this.sessionWords.length - 1) {
-                    const wrap = document.getElementById('cardWrapper');
-                    wrap.classList.add('slide-out-left');
-                    setTimeout(() => { this.sessionIdx++; this.renderStudy(); wrap.className = 'w-full slide-in'; }, 250);
-                } else { this.switchMode('quiz'); }
-            },
+            moveLeft() { if(this.sessionIdx > 0) { const wrap = document.getElementById('cardWrapper'); wrap.classList.add('slide-out-right'); setTimeout(() => { this.sessionIdx--; this.renderStudy(); wrap.className = 'w-full slide-in'; }, 250); } },
+            moveRight() { if(this.sessionIdx < this.sessionWords.length - 1) { const wrap = document.getElementById('cardWrapper'); wrap.classList.add('slide-out-left'); setTimeout(() => { this.sessionIdx++; this.renderStudy(); wrap.className = 'w-full slide-in'; }, 250); } else { this.switchMode('quiz'); } },
 
             startSession(words, dayNum, key) {
                 this.sessionWords = words; this.sessionIdx = 0; this.mode = 'study'; this.currentKey = key;
@@ -363,18 +359,18 @@
                 document.getElementById('lExEn').textContent = w.example.en;
                 document.getElementById('lExKo').textContent = w.example.ko;
                 
-                // 어원 데이터 렌더링 (확대된 글자 크기)
+                // 어원 데이터 렌더링 (확대된 텍스트 및 레이아웃)
                 document.getElementById('lEtym').innerHTML = w.parts.map(p=>`
-                    <div class="p-3.5 etym-item rounded-2xl shadow-sm border border-indigo-100">
-                        <div class="flex items-center justify-between mb-1">
-                            <span class="text-[9px] font-black text-slate-400 uppercase">${p.type}</span>
-                            <span class="text-[14px] font-black text-indigo-700">${p.text}</span>
+                    <div class="p-4 etym-item rounded-2xl shadow-sm border border-indigo-100">
+                        <div class="flex items-center justify-between mb-1.5">
+                            <span class="etym-label">${p.type}</span>
+                            <span class="etym-text">${p.text}</span>
                         </div>
-                        <p class="text-[16px] font-black text-slate-800 leading-none">${p.meaning}</p>
+                        <p class="etym-meaning">${p.meaning}</p>
                     </div>
                 `).join('');
                 
-                document.getElementById('nextBtn').textContent = this.sessionIdx === this.sessionWords.length - 1 ? "Start Quiz" : "Next";
+                document.getElementById('nextBtn').textContent = this.sessionIdx === this.sessionWords.length - 1 ? "Start Quiz" : "Next Word";
                 this.ri();
             },
 
@@ -382,8 +378,8 @@
                 this.mode = m;
                 ['studyUI','quizUI','resultUI'].forEach(ui => document.getElementById(ui).classList.add('hidden'));
                 document.getElementById(`${m}UI`).classList.remove('hidden');
-                document.getElementById('mode-study').className = m==='study'?"px-4 py-1 text-[10px] font-black rounded-md bg-white shadow-sm text-indigo-600":"px-4 py-1 text-[10px] font-black rounded-md text-slate-400";
-                document.getElementById('mode-quiz').className = m==='quiz'?"px-4 py-1 text-[10px] font-black rounded-md bg-white shadow-sm text-rose-600":"px-4 py-1 text-[10px] font-black rounded-md text-slate-400";
+                document.getElementById('mode-study').className = m==='study'?"px-4 py-1 text-[10px] font-black rounded-md bg-white shadow-sm text-indigo-600 transition-all":"px-4 py-1 text-[10px] font-black rounded-md text-slate-400";
+                document.getElementById('mode-quiz').className = m==='quiz'?"px-4 py-1 text-[10px] font-black rounded-md bg-white shadow-sm text-rose-600 transition-all":"px-4 py-1 text-[10px] font-black rounded-md text-slate-400";
                 if(m==='quiz') { this.sessionIdx = 0; this.score = 0; this.wrongs = []; this.sessionWords = [...this.sessionWords].sort(()=>Math.random()-0.5); this.loadQuizQ(); }
                 else if(m==='study') { this.sessionIdx = 0; this.renderStudy(); }
                 this.ri();
@@ -395,7 +391,18 @@
             confirmExit() { if(confirm("학습을 중단하시겠습니까?")) this.exitNow(); },
             exitNow() { document.getElementById('sessionLayer').classList.add('hidden'); this.renderGrid(); },
             toggleDict() { const p = document.getElementById('dictPanel'); const o = document.getElementById('dictOverlay'); const isOpen = p.classList.toggle('open'); o.classList.toggle('hidden', !isOpen); setTimeout(()=>o.style.opacity = isOpen ? '1' : '0', 10); },
-            searchDict() { /* 사전 검색 동일 */ },
+            searchDict() {
+                const q = document.getElementById('dictInput').value.toLowerCase();
+                const list = document.getElementById('dictList'); list.innerHTML = '';
+                this.db.filter(i=>(i.word+i.meaning).toLowerCase().includes(q)).slice(0,20).forEach(w => {
+                    const c = document.createElement('div');
+                    c.className = "bg-white p-4 rounded-2xl border border-slate-100 flex justify-between items-center shadow-sm active:bg-slate-50";
+                    c.onclick = () => this.speak(w.word);
+                    c.innerHTML = `<div><span class="font-black text-slate-800 text-sm">${w.word}</span><p class="text-[11px] font-bold text-indigo-600 mt-1">${w.meaning}</p></div><i data-lucide="volume-2" class="w-4 h-4 text-slate-300"></i>`;
+                    list.appendChild(c);
+                });
+                this.ri();
+            },
             ri() { if(window.lucide) window.lucide.createIcons(); }
         };
 
