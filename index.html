@@ -190,16 +190,17 @@
                 </div>
             </div>
 
-            <!-- STEP 2: Quiz UI (힌트 기능 추가) -->
-            <div id="quizUI" class="hidden flex-1 flex flex-col items-center justify-center w-full max-w-md mx-auto">
-                <div class="w-full bg-white rounded-[2.5rem] shadow-xl p-8 mb-6 border border-slate-200 relative overflow-hidden text-center flex flex-col">
+            <!-- STEP 2: Quiz UI (스크롤 최적화 및 힌트 기능) -->
+            <div id="quizUI" class="hidden flex-1 flex flex-col items-center justify-start w-full max-w-md mx-auto overflow-y-auto custom-scroll pb-6">
+                <!-- 상하 패딩을 줄여 공간 확보 -->
+                <div class="w-full bg-white rounded-3xl shadow-xl p-6 mb-4 mt-2 border border-slate-200 relative overflow-hidden text-center flex flex-col shrink-0">
                     <div class="absolute top-0 left-0 w-full h-1 bg-slate-50"><div id="qBar" class="h-full bg-indigo-600 transition-all duration-300"></div></div>
                     
-                    <div class="flex items-center justify-center gap-3 mb-1 mt-4">
-                        <h3 id="qWord" class="text-5xl font-black text-slate-900 tracking-tighter"></h3>
-                        <button onclick="app.speak(document.getElementById('qWord').textContent)" class="p-2 bg-slate-50 text-indigo-400 rounded-full active:bg-indigo-100"><i data-lucide="volume-2" class="w-6 h-6"></i></button>
+                    <div class="flex items-center justify-center gap-3 mb-1 mt-2">
+                        <h3 id="qWord" class="text-4xl font-black text-slate-900 tracking-tighter"></h3>
+                        <button onclick="app.speak(document.getElementById('qWord').textContent)" class="p-2 bg-slate-50 text-indigo-400 rounded-full active:bg-indigo-100"><i data-lucide="volume-2" class="w-5 h-5"></i></button>
                     </div>
-                    <p id="qPron" class="text-slate-300 italic font-medium mb-5"></p>
+                    <p id="qPron" class="text-slate-300 text-sm italic font-medium mb-4"></p>
                     
                     <!-- 💡 힌트 버튼 -->
                     <button onclick="app.showHint()" id="hintBtn" class="mx-auto flex items-center gap-1.5 text-[11px] font-black text-amber-500 bg-amber-50 px-4 py-2 rounded-full active:scale-95 transition-transform border border-amber-100">
@@ -207,16 +208,16 @@
                     </button>
                     
                     <!-- 힌트 내용 (숨김 처리) -->
-                    <div id="qHintContent" class="hidden mt-4 text-left border-t border-slate-100 pt-4 custom-scroll">
+                    <div id="qHintContent" class="hidden mt-3 text-left border-t border-slate-100 pt-3 custom-scroll">
                         <div id="qEtym" class="flex flex-col gap-1.5"></div>
                     </div>
                 </div>
                 
-                <!-- 4지선다 옵션 -->
-                <div id="qOptions" class="w-full grid grid-cols-1 gap-2.5"></div>
+                <!-- 4지선다 옵션 (간격 및 패딩 축소) -->
+                <div id="qOptions" class="w-full flex flex-col gap-2 shrink-0"></div>
             </div>
 
-            <!-- STEP 3: Result UI (정답 수 표기 변경) -->
+            <!-- STEP 3: Result UI (정답 수 표기) -->
             <div id="resultUI" class="hidden flex-1 flex flex-col items-center justify-center text-center p-6 bg-white rounded-[3rem] shadow-sm">
                 <div class="w-24 h-24 bg-yellow-100 rounded-full flex items-center justify-center mb-6 shadow-inner"><i data-lucide="award" class="text-yellow-500 w-12 h-12"></i></div>
                 <h2 class="text-4xl font-black text-slate-900 mb-1">Session Cleared!</h2>
@@ -479,11 +480,14 @@
                 const container = document.getElementById('qOptions'); container.innerHTML = '';
                 opts.forEach((o, i) => {
                     const btn = document.createElement('button');
-                    btn.className = "option-btn w-full text-left p-5 rounded-[1.5rem] border-2 border-slate-200 bg-white font-black text-slate-700 flex items-center shadow-sm";
-                    btn.innerHTML = `<span class="w-8 h-8 rounded-lg bg-slate-50 flex items-center justify-center mr-4 text-xs font-black text-slate-300">${i+1}</span> ${o.t}`;
+                    btn.className = "option-btn w-full text-left p-4 rounded-2xl border-2 border-slate-200 bg-white font-black text-slate-700 flex items-center transition-all shadow-sm shrink-0";
+                    btn.innerHTML = `<span class="w-8 h-8 rounded-lg bg-slate-50 flex items-center justify-center mr-3 text-xs font-black text-slate-400 shrink-0">${i+1}</span> <span class="leading-snug">${o.t}</span>`;
                     btn.onclick = () => this.checkQuiz(btn, o.c, w);
                     container.appendChild(btn);
                 });
+                
+                // 스크롤 맨 위로 초기화
+                document.getElementById('quizUI').scrollTop = 0;
                 this.ri();
             },
             showHint() {
@@ -493,10 +497,10 @@
             checkQuiz(el, correct, w) {
                 if(this.isAns) return; this.isAns = true;
                 if(correct) {
-                    el.className = "option-btn w-full text-left p-5 rounded-[1.5rem] border-2 border-emerald-500 bg-emerald-50 font-black text-emerald-700 shadow-lg scale-[1.02] flex items-center";
+                    el.className = "option-btn w-full text-left p-4 rounded-2xl border-2 border-emerald-500 bg-emerald-50 font-black text-emerald-700 shadow-lg scale-[1.02] flex items-center shrink-0";
                     this.score++; // 정답 개수 1 증가
                 } else {
-                    el.className = "option-btn w-full text-left p-5 rounded-[1.5rem] border-2 border-rose-500 bg-rose-50 font-black text-rose-700 flex items-center";
+                    el.className = "option-btn w-full text-left p-4 rounded-2xl border-2 border-rose-500 bg-rose-50 font-black text-rose-700 flex items-center shrink-0";
                     this.wrongs.push(w);
                     document.querySelectorAll('.option-btn').forEach(b => { if(b.textContent.includes(w.meaning)) b.classList.add('border-emerald-500','bg-emerald-50'); });
                 }
