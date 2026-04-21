@@ -1,0 +1,650 @@
+```html
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VocaRoots Pro - Ultimate Engine</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/lucide/0.260.0/umd/lucide.min.js"></script>
+    <style>
+        body { font-family: 'Noto Sans KR', sans-serif; }
+        .custom-scroll::-webkit-scrollbar { width: 6px; }
+        .custom-scroll::-webkit-scrollbar-track { background: #f8fafc; border-radius: 4px; }
+        .custom-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        .custom-scroll::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+        .toast-animate { animation: slideInUp 0.3s ease-out forwards; }
+        @keyframes slideInUp {
+            from { transform: translate(-50%, 100%); opacity: 0; }
+            to { transform: translate(-50%, 0); opacity: 1; }
+        }
+        .option-btn { transition: all 0.2s; }
+        .option-btn:hover:not(:disabled) { transform: scale(1.02); }
+        .etymology-part { transition: transform 0.2s; }
+        .etymology-part:hover { transform: translateY(-2px); }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 h-screen flex flex-col overflow-hidden">
+
+    <!-- Header & Navigation -->
+    <header class="bg-white shadow-sm z-20 shrink-0 border-b border-slate-200">
+        <div class="max-w-6xl mx-auto px-4 py-3 sm:px-6 lg:px-8 flex flex-col sm:flex-row justify-between items-center gap-4">
+            <div class="flex items-center gap-2">
+                <div class="bg-indigo-600 p-2 rounded-xl shadow-sm">
+                    <i data-lucide="graduation-cap" class="text-white w-6 h-6"></i>
+                </div>
+                <h1 class="text-2xl font-black text-slate-900 tracking-tight">Voca<span class="text-indigo-600">Roots</span></h1>
+            </div>
+            
+            <!-- Tabs -->
+            <div class="flex bg-slate-100 p-1 rounded-xl">
+                <button onclick="app.switchTab('dict')" id="tab-dict" class="px-5 py-2 text-sm font-bold rounded-lg bg-white text-indigo-700 shadow-sm transition-all">단어 사전</button>
+                <button onclick="app.switchTab('study')" id="tab-study" class="px-5 py-2 text-sm font-bold rounded-lg text-slate-500 hover:text-slate-800 transition-all">일일 학습 & 퀴즈</button>
+            </div>
+
+            <!-- Data Load Button -->
+            <div class="flex items-center gap-3 shrink-0">
+                <input type="file" id="jsonFileLoader" multiple accept="application/json" class="hidden" onchange="app.loadJsonFiles(event)">
+                <button onclick="document.getElementById('jsonFileLoader').click()" class="flex items-center gap-1.5 bg-slate-800 hover:bg-black text-white px-4 py-2.5 rounded-xl font-bold text-sm transition-all shadow-md">
+                    <i data-lucide="database" class="w-4 h-4 text-indigo-300"></i> 데이터 로드
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="flex-1 max-w-6xl mx-auto w-full relative overflow-hidden">
+        
+        <!-- ========================================== -->
+        <!-- TAB 1: 단어 사전 뷰 -->
+        <!-- ========================================== -->
+        <div id="view-dict" class="w-full h-full flex flex-col lg:flex-row absolute inset-0 transition-opacity duration-300">
+            <aside class="w-full lg:w-[400px] border-r border-slate-200 bg-white flex flex-col shrink-0 lg:h-full h-[40vh] lg:h-auto border-b lg:border-b-0">
+                <div class="p-4 border-b border-slate-100 bg-slate-50 flex flex-col gap-3">
+                    <div class="flex justify-between items-center">
+                        <span id="wordCount" class="text-xs font-bold bg-indigo-100 text-indigo-700 px-3 py-1 rounded-full shadow-sm">0 단어</span>
+                        <div class="relative w-2/3">
+                            <i data-lucide="search" class="absolute left-3 top-2 text-slate-400 w-4 h-4"></i>
+                            <input type="text" id="searchInput" class="w-full pl-9 pr-3 py-1.5 border border-slate-200 rounded-lg bg-white focus:ring-2 focus:ring-indigo-500 font-medium text-sm outline-none" placeholder="단어, 뜻 검색" oninput="app.handleSearch(event)">
+                        </div>
+                    </div>
+                    <div class="flex gap-2 p-1.5 bg-slate-200/60 rounded-xl">
+                        <button id="filter-all" onclick="app.setFilter('all')" class="flex-1 py-1.5 text-xs font-bold rounded-lg bg-white text-indigo-700 shadow-sm transition-all border border-indigo-100 scale-105">전체보기</button>
+                        <button id="filter-middle" onclick="app.setFilter('middle')" class="flex-1 py-1.5 text-xs font-bold rounded-lg text-slate-500 hover:bg-slate-300/40 transition-all">중등</button>
+                        <button id="filter-high" onclick="app.setFilter('high')" class="flex-1 py-1.5 text-xs font-bold rounded-lg text-slate-500 hover:text-slate-700 transition-all">고등</button>
+                    </div>
+                </div>
+                <div id="wordListContainer" class="flex-1 overflow-y-auto custom-scroll p-3 pb-20"></div>
+            </aside>
+
+            <section class="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-10 bg-slate-50/50 relative">
+                <div id="wordDetailContainer" class="max-w-2xl mx-auto w-full pt-4">
+                    <div id="emptyState" class="text-center text-slate-500 flex flex-col items-center justify-center h-full mt-20">
+                        <div class="bg-indigo-100 p-6 rounded-full mb-2 shadow-sm relative">
+                            <i data-lucide="plug" class="w-16 h-16 text-indigo-600"></i>
+                            <span id="dbStatusIndicator" class="absolute top-2 right-2 w-4 h-4 bg-rose-500 rounded-full border-2 border-white animate-pulse"></span>
+                        </div>
+                        <h3 id="emptyTitle" class="text-2xl font-bold text-slate-700 mt-4">데이터 파일이 필요합니다</h3>
+                        <p id="emptyDesc" class="text-sm mt-2">상단의 <b>[데이터 로드]</b> 버튼을 눌러 JSON 파일들을 한꺼번에 선택하세요.</p>
+                    </div>
+                    
+                    <div id="wordCard" class="hidden bg-white rounded-[2rem] shadow-xl border border-slate-100 p-8 transition-all">
+                        <div class="text-center mb-6 relative">
+                            <span id="detailLevel" class="absolute top-0 right-0 px-3 py-1 text-[10px] font-black rounded-full uppercase"></span>
+                            <h2 id="detailWord" class="text-4xl sm:text-6xl font-black text-slate-900 mb-2"></h2>
+                            <p id="detailPronunciation" class="text-slate-400 font-medium mb-4 text-lg"></p>
+                            <div class="inline-block bg-indigo-50 border border-indigo-100 px-8 py-3 rounded-2xl shadow-sm">
+                                <p id="detailMeaning" class="text-2xl font-bold text-indigo-900"></p>
+                            </div>
+                        </div>
+
+                        <div id="apiDictResult" class="mb-8 bg-slate-50 rounded-2xl p-5 border border-slate-200 hidden"></div>
+
+                        <div class="mb-8">
+                            <h3 class="text-sm font-bold text-slate-400 uppercase tracking-wider mb-5 flex items-center gap-2"><i data-lucide="workflow" class="w-5 h-5 text-indigo-400"></i> 어원 논리 분석</h3>
+                            <div id="etymologyVisuals" class="flex flex-wrap justify-center items-stretch gap-3 mb-6"></div>
+                            <div class="bg-amber-50 border border-amber-200/60 rounded-2xl p-6 relative overflow-hidden shadow-inner">
+                                <i data-lucide="key" class="absolute -right-4 -bottom-4 opacity-20 w-32 h-32 text-amber-500"></i>
+                                <h4 class="font-bold text-amber-800 mb-3 flex items-center gap-2 relative z-10 text-lg"><i data-lucide="lightbulb" class="w-5 h-5 text-amber-500 fill-amber-400"></i> 연상 기억법</h4>
+                                <p id="detailStory" class="text-amber-900/90 leading-relaxed relative z-10 font-medium text-[15px]"></p>
+                            </div>
+                        </div>
+
+                        <div>
+                            <h3 class="text-sm font-bold text-slate-400 uppercase tracking-wider mb-4 flex items-center gap-2"><i data-lucide="quote" class="w-5 h-5 text-indigo-400"></i> 실전 예문</h3>
+                            <div class="bg-white rounded-2xl p-5 border-2 border-slate-100 mb-6">
+                                <p id="detailExampleEn" class="text-slate-800 font-bold text-lg mb-2 italic"></p>
+                                <p id="detailExampleKo" class="text-slate-500 text-sm font-medium"></p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </div>
+
+        <!-- ========================================== -->
+        <!-- TAB 2: 일일 학습 & 퀴즈 뷰 -->
+        <!-- ========================================== -->
+        <div id="view-study" class="w-full h-full flex flex-col absolute inset-0 opacity-0 pointer-events-none transition-opacity duration-300 bg-slate-50">
+            
+            <div id="dayListView" class="w-full h-full flex flex-col p-6 overflow-y-auto custom-scroll">
+                <div class="max-w-5xl mx-auto w-full">
+                    <div class="flex flex-col md:flex-row justify-between items-start md:items-end mb-6 gap-4">
+                        <div>
+                            <h2 class="text-2xl font-black text-slate-800">일일 학습 플랜</h2>
+                            <p class="text-slate-500 text-sm mt-1">학습 코스와 하루 학습량을 설정하면 자동으로 스케줄이 생성됩니다.</p>
+                        </div>
+                        <div class="flex flex-wrap items-center gap-3">
+                            <div class="flex items-center gap-2 bg-white p-2 rounded-xl shadow-sm border border-slate-200">
+                                <label class="text-sm font-bold text-slate-600 pl-2">학습 코스:</label>
+                                <select id="studyLevelSelect" onchange="app.generateDays()" class="bg-slate-50 border border-slate-200 text-slate-800 text-sm rounded-lg focus:ring-indigo-500 font-bold px-2 py-1 outline-none">
+                                    <option value="middle">중등 필수</option>
+                                    <option value="high">고등 심화</option>
+                                    <option value="all" selected>전체 통합</option>
+                                </select>
+                            </div>
+                            <div class="flex items-center gap-2 bg-white p-2 rounded-xl shadow-sm border border-slate-200">
+                                <label class="text-sm font-bold text-slate-600 pl-2">하루 학습량:</label>
+                                <select id="wordsPerDaySelect" onchange="app.generateDays()" class="bg-slate-50 border border-slate-200 text-slate-800 text-sm rounded-lg focus:ring-indigo-500 font-bold px-2 py-1 outline-none">
+                                    <option value="10">10개씩</option>
+                                    <option value="15">15개씩</option>
+                                    <option value="20" selected>20개씩 (권장)</option>
+                                    <option value="30">30개씩 (빠른)</option>
+                                    <option value="50">50개씩 (초단기)</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    <div id="daysGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 pb-20"></div>
+                </div>
+            </div>
+
+            <div id="quizPlayView" class="w-full h-full flex flex-col hidden bg-white z-10 absolute inset-0">
+                <div class="bg-indigo-600 p-4 text-white flex justify-between items-center shadow-md">
+                    <button onclick="app.exitQuiz()" class="flex items-center gap-1 text-indigo-100 hover:text-white font-bold text-sm">
+                        <i data-lucide="arrow-left" class="w-4 h-4"></i> 그만하기
+                    </button>
+                    <div class="font-black text-lg" id="quizDayTitle">Day 1 퀴즈</div>
+                    <div class="font-bold bg-indigo-800 px-3 py-1 rounded-lg text-sm"><span id="quizProgress">1</span> / <span id="quizTotal">20</span></div>
+                </div>
+                
+                <div class="flex-1 overflow-y-auto p-4 sm:p-8 flex flex-col items-center justify-center bg-slate-50 relative">
+                    <div class="max-w-xl w-full">
+                        <div class="bg-white rounded-3xl shadow-sm border border-slate-200 p-8 text-center mb-6">
+                            <p class="text-slate-400 font-bold text-sm mb-2 tracking-widest">다음 단어의 뜻을 고르세요</p>
+                            <h2 id="quizWord" class="text-5xl font-black text-indigo-900 mb-2"></h2>
+                            <p id="quizPronunciation" class="text-slate-400 font-medium"></p>
+                        </div>
+                        <div id="quizOptions" class="grid grid-cols-1 gap-3"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="quizResultView" class="w-full h-full flex flex-col hidden bg-white z-20 absolute inset-0 items-center justify-center p-6">
+                <div class="max-w-md w-full text-center">
+                    <i data-lucide="award" class="w-24 h-24 text-yellow-400 mx-auto mb-6"></i>
+                    <h2 class="text-4xl font-black text-slate-800 mb-2">학습 완료!</h2>
+                    <p class="text-lg text-slate-500 font-medium mb-8">당신의 점수는 <span id="quizScore" class="text-indigo-600 font-black text-2xl"></span> 점 입니다.</p>
+                    
+                    <div id="wrongAnswersReview" class="bg-slate-50 rounded-2xl p-6 text-left mb-8 max-h-60 overflow-y-auto border border-slate-200 hidden custom-scroll">
+                        <h4 class="font-bold text-rose-600 mb-3 flex items-center gap-2"><i data-lucide="alert-circle" class="w-4 h-4"></i> 틀린 단어 복습</h4>
+                        <ul id="wrongWordsList" class="space-y-3"></ul>
+                    </div>
+
+                    <button onclick="app.exitQuiz()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-black text-lg py-4 rounded-xl shadow-lg transition-all">
+                        플랜 목록으로 돌아가기
+                    </button>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <div id="toast" class="fixed bottom-6 left-1/2 transform -translate-x-1/2 bg-slate-800 text-white px-6 py-3 rounded-2xl shadow-2xl flex items-center gap-3 z-50 hidden">
+        <i data-lucide="check-circle-2" class="w-5 h-5 text-green-400"></i>
+        <span id="toastMsg" class="font-bold text-sm"></span>
+    </div>
+
+    <script>
+        let globalDatabase = []; 
+
+        const app = {
+            currentMode: 'dict', 
+            filteredData: [],
+            currentLevelFilter: 'all',
+            maxRenderCount: 50, 
+            currentlyRendered: 0,
+            currentWord: null,
+            
+            // Quiz States
+            daysData: [],
+            currentQuizWords: [],
+            currentQIndex: 0,
+            score: 0,
+            wrongWords: [],
+            quizAnswered: false,
+
+            refreshIcons() {
+                try { if (typeof window.lucide !== 'undefined') window.lucide.createIcons(); } catch (e) {}
+            },
+
+            init() {
+                this.updateEmptyState();
+                this.refreshIcons();
+                document.addEventListener('keydown', (e) => {
+                    if (e.key === 'Escape' && this.currentMode === 'dict') this.clearSearch();
+                });
+            },
+
+            switchTab(mode) {
+                this.currentMode = mode;
+                const tabDict = document.getElementById('tab-dict');
+                const tabStudy = document.getElementById('tab-study');
+                const viewDict = document.getElementById('view-dict');
+                const viewStudy = document.getElementById('view-study');
+
+                if (mode === 'dict') {
+                    tabDict.className = "px-5 py-2 text-sm font-bold rounded-lg bg-white text-indigo-700 shadow-sm transition-all";
+                    tabStudy.className = "px-5 py-2 text-sm font-bold rounded-lg text-slate-500 hover:text-slate-800 transition-all";
+                    viewDict.style.opacity = '1'; viewDict.style.pointerEvents = 'auto';
+                    viewStudy.style.opacity = '0'; viewStudy.style.pointerEvents = 'none';
+                } else {
+                    tabStudy.className = "px-5 py-2 text-sm font-bold rounded-lg bg-white text-indigo-700 shadow-sm transition-all";
+                    tabDict.className = "px-5 py-2 text-sm font-bold rounded-lg text-slate-500 hover:text-slate-800 transition-all";
+                    viewStudy.style.opacity = '1'; viewStudy.style.pointerEvents = 'auto';
+                    viewDict.style.opacity = '0'; viewDict.style.pointerEvents = 'none';
+                    if(this.daysData.length === 0) this.generateDays(); 
+                }
+            },
+
+            async loadJsonFiles(event) {
+                const files = event.target.files;
+                if (!files || files.length === 0) return;
+
+                let loadedWordCount = 0;
+                for (let file of files) {
+                    try {
+                        const text = await file.text();
+                        const jsonData = JSON.parse(text);
+                        if (Array.isArray(jsonData)) {
+                            globalDatabase.push(...jsonData);
+                            loadedWordCount += jsonData.length;
+                        }
+                    } catch (e) {
+                        alert(`${file.name} 파일의 형식이 올바르지 않습니다.`);
+                    }
+                }
+                
+                globalDatabase = globalDatabase.filter((value, index, self) =>
+                    index === self.findIndex((t) => (t.word === value.word))
+                );
+
+                this.setFilter('all');
+                this.updateEmptyState();
+                this.generateDays(); 
+                
+                this.showToast(`총 ${globalDatabase.length}개 단어 탑재 완료!`);
+                event.target.value = ''; 
+            },
+
+            showToast(msg) {
+                const toast = document.getElementById('toast');
+                document.getElementById('toastMsg').textContent = msg;
+                toast.classList.remove('hidden');
+                toast.classList.add('toast-animate');
+                setTimeout(() => {
+                    toast.classList.add('hidden');
+                    toast.classList.remove('toast-animate');
+                }, 3000);
+            },
+
+            updateEmptyState() {
+                const indicator = document.getElementById('dbStatusIndicator');
+                const title = document.getElementById('emptyTitle');
+                const desc = document.getElementById('emptyDesc');
+
+                if (globalDatabase.length === 0) {
+                    document.getElementById('emptyState').classList.remove('hidden');
+                    document.getElementById('wordCard').classList.add('hidden');
+                    indicator.className = "absolute top-2 right-2 w-4 h-4 bg-rose-500 rounded-full border-2 border-white animate-pulse";
+                    title.textContent = "데이터 파일이 필요합니다";
+                    desc.innerHTML = "💡 우측 상단의 <b>[데이터 로드]</b> 버튼을 눌러<br>분리해 둔 <code>.json</code> 단어장 파일들을 한꺼번에 선택해주세요.";
+                } else {
+                    document.getElementById('emptyState').classList.add('hidden');
+                    indicator.className = "absolute top-2 right-2 w-4 h-4 bg-green-500 rounded-full border-2 border-white";
+                    title.textContent = "단어를 선택해주세요";
+                    desc.innerHTML = `✅ <b>엔진 가동 중: 총 ${globalDatabase.length.toLocaleString()}개 단어 탑재됨</b><br>좌측 목록에서 단어를 선택하거나 검색창을 이용해보세요.`;
+                    
+                    if(!this.currentWord) this.selectWord(globalDatabase[0].word);
+                }
+                this.refreshIcons();
+            },
+
+            setFilter(level) {
+                this.currentLevelFilter = level;
+                const buttons = ['all', 'middle', 'high'];
+                buttons.forEach(btn => {
+                    const el = document.getElementById(`filter-${btn}`);
+                    if (btn === level) el.className = "flex-1 py-1.5 text-xs font-bold rounded-lg bg-white text-indigo-700 shadow-sm transition-all border border-indigo-100 scale-105";
+                    else el.className = "flex-1 py-1.5 text-xs font-bold rounded-lg text-slate-500 hover:bg-slate-300/40 transition-all";
+                });
+                this.applyFilters();
+            },
+
+            applyFilters() {
+                const query = document.getElementById('searchInput').value.toLowerCase().trim();
+                let data = globalDatabase; 
+
+                if (this.currentLevelFilter !== 'all') data = data.filter(item => item.level === this.currentLevelFilter);
+                if (query !== '') {
+                    data = data.filter(item => {
+                        const searchString = `${item.word} ${item.meaning} ${item.parts.map(p=>p.text+' '+p.meaning).join(' ')}`.toLowerCase();
+                        return searchString.includes(query);
+                    });
+                }
+
+                this.filteredData = data;
+                this.currentlyRendered = 0; 
+                document.getElementById('wordCount').textContent = `${this.filteredData.length.toLocaleString()} 단어`;
+                
+                const container = document.getElementById('wordListContainer');
+                container.innerHTML = ''; 
+                this.renderMoreWords(); 
+            },
+
+            renderMoreWords() {
+                const container = document.getElementById('wordListContainer');
+                
+                if (this.filteredData.length === 0) {
+                    if(globalDatabase.length === 0) {
+                        container.innerHTML = `<div class="text-center p-8 text-slate-400"><i data-lucide="database" class="w-10 h-10 mx-auto mb-3 opacity-30"></i><p class="text-sm font-bold">로딩된 데이터가 없습니다.</p></div>`;
+                    } else {
+                        container.innerHTML = `<div class="text-center p-10 text-slate-400 flex flex-col items-center"><i data-lucide="search-x" class="w-12 h-12 mb-4 opacity-30"></i><p class="text-base font-bold">검색 결과가 없습니다.</p></div>`;
+                    }
+                    this.refreshIcons();
+                    return;
+                }
+
+                const startIdx = this.currentlyRendered;
+                const endIdx = Math.min(startIdx + this.maxRenderCount, this.filteredData.length);
+                const itemsToRender = this.filteredData.slice(startIdx, endIdx);
+
+                const loadMoreBtn = document.getElementById('loadMoreBtn');
+                if(loadMoreBtn) loadMoreBtn.remove();
+
+                itemsToRender.forEach(wordObj => {
+                    const isMiddle = wordObj.level === 'middle';
+                    const levelBadge = isMiddle ? `<span class="text-[10px] font-black px-2 py-0.5 rounded-md bg-blue-50 text-blue-600 border border-blue-100">중등</span>` : `<span class="text-[10px] font-black px-2 py-0.5 rounded-md bg-purple-50 text-purple-600 border border-purple-100">고등</span>`;
+                    const item = document.createElement('button');
+                    item.className = `w-full text-left p-4 mb-3 rounded-2xl transition-all duration-200 border ${this.currentWord === wordObj.word ? 'bg-indigo-50 border-indigo-300 shadow-md transform scale-[1.02] z-10 relative' : 'bg-white border-slate-200 hover:border-indigo-200 hover:shadow-sm'} focus:outline-none`;
+                    item.onclick = () => this.selectWord(wordObj.word);
+                    item.innerHTML = `<div class="flex justify-between items-center mb-1.5"><span class="font-black text-xl ${this.currentWord === wordObj.word ? 'text-indigo-800' : 'text-slate-800'} tracking-tight">${wordObj.word}</span>${levelBadge}</div><div class="text-sm font-bold text-slate-500 truncate">${wordObj.meaning}</div>`;
+                    container.appendChild(item);
+                });
+
+                this.currentlyRendered = endIdx;
+
+                if (this.currentlyRendered < this.filteredData.length) {
+                    const btn = document.createElement('button');
+                    btn.id = 'loadMoreBtn';
+                    btn.className = "w-full py-4 mt-2 text-sm font-bold text-slate-500 bg-slate-100 rounded-xl border border-slate-200 hover:bg-slate-200 hover:text-slate-700 transition-colors flex justify-center items-center gap-2";
+                    btn.innerHTML = `<i data-lucide="chevron-down" class="w-4 h-4"></i> ${this.filteredData.length - this.currentlyRendered}개 더 보기...`;
+                    btn.onclick = () => this.renderMoreWords();
+                    container.appendChild(btn);
+                }
+                this.refreshIcons();
+            },
+
+            handleSearch(event) { this.applyFilters(); },
+
+            clearSearch() {
+                document.getElementById('searchInput').value = '';
+                this.setFilter('all'); 
+            },
+
+            selectWord(wordStr) {
+                this.currentWord = wordStr;
+                const wordObj = globalDatabase.find(w => w.word === wordStr);
+                if (!wordObj) return;
+
+                document.getElementById('emptyState').classList.add('hidden');
+                document.getElementById('wordCard').classList.remove('hidden');
+
+                const levelEl = document.getElementById('detailLevel');
+                if(wordObj.level === 'middle') {
+                    levelEl.textContent = '중등 필수 단어';
+                    levelEl.className = 'absolute top-0 right-0 px-3 py-1.5 text-[11px] font-black rounded-lg bg-blue-100 text-blue-700 border border-blue-200';
+                } else {
+                    levelEl.textContent = '고등 심화 단어';
+                    levelEl.className = 'absolute top-0 right-0 px-3 py-1.5 text-[11px] font-black rounded-lg bg-purple-100 text-purple-700 border border-purple-200';
+                }
+
+                document.getElementById('detailWord').textContent = wordObj.word;
+                document.getElementById('detailPronunciation').textContent = wordObj.pronunciation;
+                document.getElementById('detailMeaning').textContent = wordObj.meaning;
+                document.getElementById('detailStory').innerHTML = wordObj.story.replace(/('[^']+')/g, '<span class="font-black text-amber-600">$1</span>');
+                document.getElementById('detailExampleEn').textContent = `"${wordObj.example.en}"`;
+                document.getElementById('detailExampleKo').textContent = wordObj.example.ko;
+
+                const visualsContainer = document.getElementById('etymologyVisuals');
+                visualsContainer.innerHTML = '';
+                wordObj.parts.forEach((part, index) => {
+                    const partDiv = document.createElement('div');
+                    partDiv.className = 'etymology-part flex flex-col items-center group';
+                    let bgClass = part.type === 'prefix' ? 'bg-blue-50 border-blue-200 text-blue-700' : part.type === 'root' ? 'bg-green-50 border-green-300 text-green-800' : 'bg-pink-50 border-pink-200 text-pink-700';
+                    let labelText = part.type === 'prefix' ? '접두사' : part.type === 'root' ? '어근' : '접미사';
+
+                    partDiv.innerHTML = `
+                        <div class="text-[11px] font-black text-slate-400 mb-2 tracking-widest">${labelText}</div>
+                        <div class="${bgClass} border-2 rounded-2xl px-5 py-4 shadow-sm text-center min-w-[140px]">
+                            <span class="block text-2xl font-black mb-1.5">${part.text}</span>
+                            <span class="block text-sm font-bold opacity-80">${part.meaning}</span>
+                        </div>
+                    `;
+                    visualsContainer.appendChild(partDiv);
+                    if (index < wordObj.parts.length - 1) {
+                        const plusDiv = document.createElement('div');
+                        plusDiv.className = 'flex items-center justify-center pt-6';
+                        plusDiv.innerHTML = `<span class="text-2xl font-black text-slate-300 mx-1 sm:mx-2">+</span>`;
+                        visualsContainer.appendChild(plusDiv);
+                    }
+                });
+
+                this.fetchDictionaryAPI(wordObj.word);
+                
+                const container = document.getElementById('wordListContainer');
+                container.innerHTML = ''; 
+                this.currentlyRendered = 0;
+                this.renderMoreWords(); 
+            },
+
+            async fetchDictionaryAPI(word) {
+                const resultDiv = document.getElementById('apiDictResult');
+                resultDiv.classList.remove('hidden');
+                resultDiv.innerHTML = `<div class="flex items-center justify-center text-slate-400 py-3"><i data-lucide="loader-2" class="w-5 h-5 animate-spin-slow mr-2"></i><span class="text-sm font-bold">오디오 및 뜻풀이 로딩 중...</span></div>`;
+                this.refreshIcons();
+
+                try {
+                    const response = await fetch(`https://api.dictionaryapi.dev/api/v2/entries/en/${word}`);
+                    if (!response.ok) throw new Error('Not found');
+                    const data = await response.json();
+                    const entry = data[0];
+                    const phoneticWithAudio = entry.phonetics.find(p => p.audio && p.audio.length > 0);
+                    const audioUrl = phoneticWithAudio ? phoneticWithAudio.audio : null;
+                    const firstMeaning = entry.meanings[0];
+                    
+                    resultDiv.innerHTML = `
+                        <div class="flex justify-between items-start mb-3">
+                            <h4 class="font-black text-slate-700 flex items-center gap-1.5 text-sm"><i data-lucide="book-open-check" class="w-4 h-4 text-indigo-500"></i> 영영 사전 (API)</h4>
+                            ${audioUrl ? `<button onclick="new Audio('${audioUrl}').play()" class="flex items-center gap-1.5 text-xs font-black text-white bg-slate-800 px-4 py-2 rounded-xl hover:bg-black transition-all"><i data-lucide="volume-2" class="w-4 h-4 text-indigo-300"></i> 원어민 발음</button>` : ''}
+                        </div>
+                        <p class="text-sm text-slate-700 leading-relaxed font-medium">
+                            <span class="inline-block bg-slate-200 text-slate-700 text-[10px] px-2 py-0.5 rounded-md mr-1.5 uppercase font-black">${firstMeaning.partOfSpeech}</span>
+                            ${firstMeaning.definitions[0].definition}
+                        </p>
+                    `;
+                } catch (error) {
+                    resultDiv.innerHTML = `<div class="flex items-center text-slate-400 text-sm font-medium"><i data-lucide="info" class="w-4 h-4 mr-1.5"></i> 추가 온라인 데이터를 불러올 수 없습니다.</div>`;
+                }
+                this.refreshIcons();
+            },
+
+            // --- QUIZ LOGIC ---
+            generateDays() {
+                if(globalDatabase.length === 0) return;
+                const wordsPerDay = parseInt(document.getElementById('wordsPerDaySelect').value) || 20;
+                const studyLevel = document.getElementById('studyLevelSelect').value;
+                this.daysData = [];
+                
+                let dbToUse = studyLevel !== 'all' ? globalDatabase.filter(w => w.level === studyLevel) : globalDatabase;
+                for (let i = 0; i < dbToUse.length; i += wordsPerDay) {
+                    this.daysData.push(dbToUse.slice(i, i + wordsPerDay));
+                }
+                this.renderDaysGrid(studyLevel);
+            },
+
+            renderDaysGrid(studyLevel) {
+                const grid = document.getElementById('daysGrid');
+                grid.innerHTML = '';
+                if(this.daysData.length === 0) {
+                    grid.innerHTML = `<div class="col-span-full text-center p-10 text-slate-400 font-bold">해당 코스에 로드된 데이터가 없습니다.</div>`;
+                    return;
+                }
+                let badgeHtml = studyLevel === 'middle' ? `<span class="bg-blue-50 text-blue-600 text-[10px] font-black px-2 py-1 rounded-md border border-blue-100">중등 코스</span>` : studyLevel === 'high' ? `<span class="bg-purple-50 text-purple-600 text-[10px] font-black px-2 py-1 rounded-md border border-purple-100">고등 코스</span>` : `<span class="bg-slate-100 text-slate-600 text-[10px] font-black px-2 py-1 rounded-md border border-slate-200">통합 코스</span>`;
+
+                this.daysData.forEach((dayWords, index) => {
+                    const roots = new Set();
+                    dayWords.forEach(w => { w.parts.forEach(p => { if(p.type === 'root') roots.add(p.text); }); });
+                    const rootPreview = Array.from(roots).slice(0, 3).join(', ') + (roots.size > 3 ? '...' : '');
+
+                    const card = document.createElement('div');
+                    card.className = "bg-white border border-slate-200 rounded-2xl p-5 shadow-sm hover:shadow-md transition-shadow flex flex-col justify-between";
+                    card.innerHTML = `
+                        <div>
+                            <div class="flex justify-between items-start mb-3">
+                                <div><h3 class="text-xl font-black text-indigo-900 mb-1">Day ${index + 1}</h3>${badgeHtml}</div>
+                                <span class="bg-indigo-50 text-indigo-600 text-xs font-bold px-2 py-1 rounded-md mt-1">${dayWords.length}단어</span>
+                            </div>
+                            <p class="text-xs text-slate-500 font-medium mb-4 line-clamp-2">학습 어근: ${rootPreview}</p>
+                        </div>
+                        <button onclick="app.startQuiz(${index})" class="w-full bg-slate-800 hover:bg-indigo-600 text-white font-bold py-3 rounded-xl transition-colors flex justify-center items-center gap-2">
+                            <i data-lucide="play-circle" class="w-4 h-4"></i> 퀴즈 시작
+                        </button>
+                    `;
+                    grid.appendChild(card);
+                });
+                this.refreshIcons();
+            },
+
+            startQuiz(dayIndex) {
+                this.currentQuizWords = [...this.daysData[dayIndex]].sort(() => Math.random() - 0.5);
+                this.currentQIndex = 0;
+                this.score = 0;
+                this.wrongWords = [];
+                
+                document.getElementById('dayListView').classList.add('hidden');
+                document.getElementById('quizResultView').classList.add('hidden');
+                document.getElementById('quizPlayView').classList.remove('hidden');
+                document.getElementById('quizDayTitle').textContent = `Day ${dayIndex + 1} 퀴즈`;
+                document.getElementById('quizTotal').textContent = this.currentQuizWords.length;
+                this.loadQuestion();
+            },
+
+            loadQuestion() {
+                if (this.currentQIndex >= this.currentQuizWords.length) return this.showQuizResult();
+
+                this.quizAnswered = false;
+                document.getElementById('quizProgress').textContent = this.currentQIndex + 1;
+                const currentWordObj = this.currentQuizWords[this.currentQIndex];
+                document.getElementById('quizWord').textContent = currentWordObj.word;
+                document.getElementById('quizPronunciation').textContent = currentWordObj.pronunciation;
+
+                let options = [{ text: currentWordObj.meaning, isCorrect: true }];
+                const studyLevel = document.getElementById('studyLevelSelect').value;
+                let poolSource = studyLevel !== 'all' ? globalDatabase.filter(w => w.level === studyLevel) : globalDatabase;
+                
+                let incorrectPool = poolSource.filter(w => w.word !== currentWordObj.word).sort(() => Math.random() - 0.5);
+                for(let i=0; i<3 && i<incorrectPool.length; i++) {
+                    options.push({ text: incorrectPool[i].meaning, isCorrect: false });
+                }
+                options.sort(() => Math.random() - 0.5);
+
+                const optionsContainer = document.getElementById('quizOptions');
+                optionsContainer.innerHTML = '';
+                options.forEach((opt, idx) => {
+                    const btn = document.createElement('button');
+                    btn.className = "option-btn w-full text-left p-5 rounded-2xl border-2 border-slate-100 bg-white font-bold text-lg text-slate-700 shadow-sm hover:border-indigo-300 hover:bg-indigo-50";
+                    btn.innerHTML = `<span class="inline-block w-8 h-8 bg-slate-100 text-slate-500 text-center leading-8 rounded-full mr-3 text-sm">${idx+1}</span> ${opt.text}`;
+                    btn.onclick = () => this.checkAnswer(btn, opt.isCorrect, currentWordObj);
+                    optionsContainer.appendChild(btn);
+                });
+            },
+
+            checkAnswer(btnEl, isCorrect, currentWordObj) {
+                if (this.quizAnswered) return;
+                this.quizAnswered = true;
+
+                const allBtns = document.querySelectorAll('.option-btn');
+                if (isCorrect) {
+                    btnEl.classList.remove('border-slate-100', 'hover:bg-indigo-50', 'text-slate-700');
+                    btnEl.classList.add('border-green-500', 'bg-green-50', 'text-green-800');
+                    btnEl.innerHTML += `<i data-lucide="check-circle-2" class="absolute right-5 top-6 w-6 h-6 text-green-500"></i>`;
+                    this.score += Math.round(100 / this.currentQuizWords.length);
+                } else {
+                    btnEl.classList.remove('border-slate-100', 'hover:bg-indigo-50');
+                    btnEl.classList.add('border-rose-500', 'bg-rose-50', 'text-rose-800');
+                    btnEl.innerHTML += `<i data-lucide="x-circle" class="absolute right-5 top-6 w-6 h-6 text-rose-500"></i>`;
+                    this.wrongWords.push(currentWordObj);
+                    
+                    allBtns.forEach(b => {
+                        if(b.textContent.includes(currentWordObj.meaning)) {
+                            b.classList.remove('border-slate-100');
+                            b.classList.add('border-green-500', 'bg-green-50');
+                        }
+                    });
+                }
+                allBtns.forEach(b => b.disabled = true);
+                this.refreshIcons();
+
+                setTimeout(() => { this.currentQIndex++; this.loadQuestion(); }, 1200);
+            },
+
+            showQuizResult() {
+                document.getElementById('quizPlayView').classList.add('hidden');
+                document.getElementById('quizResultView').classList.remove('hidden');
+                if(this.wrongWords.length === 0) this.score = 100;
+                document.getElementById('quizScore').textContent = this.score;
+
+                const reviewBox = document.getElementById('wrongAnswersReview');
+                const list = document.getElementById('wrongWordsList');
+                list.innerHTML = '';
+
+                if (this.wrongWords.length > 0) {
+                    reviewBox.classList.remove('hidden');
+                    this.wrongWords.forEach(w => {
+                        list.innerHTML += `
+                            <li class="border-b border-slate-200 pb-3 last:border-0 last:pb-0">
+                                <div class="font-black text-slate-800 text-lg">${w.word} <span class="text-xs text-slate-400 font-normal ml-1">${w.pronunciation}</span></div>
+                                <div class="text-rose-600 font-bold text-sm">${w.meaning}</div>
+                            </li>
+                        `;
+                    });
+                } else {
+                    reviewBox.classList.add('hidden');
+                }
+            },
+
+            exitQuiz() {
+                document.getElementById('quizPlayView').classList.add('hidden');
+                document.getElementById('quizResultView').classList.add('hidden');
+                document.getElementById('dayListView').classList.remove('hidden');
+            }
+        };
+
+        window.onload = () => app.init();
+    </script>
+</body>
+</html>
+
+
+```
